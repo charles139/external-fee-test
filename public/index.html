@@ -1,18 +1,103 @@
 <!doctype html>
 <html>
-  <head>
-    <title>ServiceLine FEE Test</title>
-  </head>
-  <body>
-    <div id="app">
-      <p style="color:#666;text-align:center;font-family:sans-serif;">
-        This would be an ideal place to build your app
-      </p>
-    </div>
-    <script>
-      fetch('/feed').then(res => res.json()).then(res => {
-        console.log('result', res);
-      });
-    </script>
-  </body>
+	<head>
+		<title>Charles' Test</title>
+		<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+		<style>
+			.card {
+				width: 14rem;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="app" class="container mt-5">
+		<div class="row">
+			<form>
+				<div class="mb-3">
+					<label for="seachField" class="form-label">Search messages</label>
+					<input type="text" class="form-control" id="seachField" placeholder="by author or content">
+				</div>
+			</form>
+		</div>
+
+		<!-- Messages to be loaded here -->
+		<div class="row justify-content-center" id="messagesContainer"></div>
+
+		<!-- Modal for viewing full content - the cards only show 40 characters -->
+		<div class="modal fade" id="cardModal">
+			<div class="modal-dialog modal-dialog-centered">
+				<div class="modal-content">
+				<div class="modal-header">
+					<!-- Title/Author is loaded on-click -->
+					<h5 class="modal-title" id="staticBackdropLabel"></h5>
+					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+				</div>
+				<div class="modal-body">
+					<!-- Message text is loaded on-click -->
+					<p id="modalBody"></p>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+				</div>
+				</div>
+			</div>
+		  </div>
+
+		<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+		</div>
+		<script>
+			//Hooks
+			let messagesContainer = document.getElementById('messagesContainer');
+			let title = document.getElementById('staticBackdropLabel');
+			let text = document.getElementById('modalBody');
+
+			//Input value and listener
+			let input = document.getElementById('seachField');
+			input.addEventListener('keyup', filterMessages);
+
+			//Parses the cards by author and content.Then updates the CSS display
+			function filterMessages() {
+				let value = input.value.toLowerCase();
+				let cards = messagesContainer.querySelectorAll('div.card');
+
+				cards.forEach((card) => {
+					let author = card.getElementsByTagName('h5')[0];
+					let content = card.getElementsByTagName('p')[0];
+					
+					//If input value matches author or content then display card - else remove card
+					if((author.innerHTML.toLowerCase().indexOf(value) !== -1) || content.innerHTML.toLowerCase().indexOf(value) !== -1) {
+						card.classList.add('d-inline-block');
+						card.classList.remove('d-none');
+					} else {
+						card.classList.remove('d-inline-block');
+						card.classList.add('d-none');
+					}
+				});
+			};
+
+			function getModalData(id) {
+				fetch('/feed').then(res => res.json()).then(res => {
+					let message = res[id-1];
+					title.innerHTML = message.author.displayName;
+					text.innerHTML = message.text;
+				});
+			};
+
+			//Gather all messages, loop thru each one and dynamically display them via messagesContainer hook - using string interpolation
+			fetch('/feed').then(res => res.json()).then(res => {
+				res.forEach(message => {
+					messagesContainer.innerHTML += `                    
+						<div class="card d-inline-block m-2">
+							<img src="${message.author.picture}" class="card-img-top" alt="${message.author.displayName}-thumbnail">
+							<div class="card-body">
+								<h5 class="card-title">${message.author.displayName}</h5>
+								<p class="card-text">${message.text.substring(0, 40)}...</p>
+								<a href="#" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#cardModal" onclick="getModalData(${message.postId})">Read more</a>
+							</div>
+						</div>`;
+				});
+			});
+
+		</script>
+	</body>
 </html>
